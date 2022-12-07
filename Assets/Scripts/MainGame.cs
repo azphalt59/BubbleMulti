@@ -2,11 +2,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using PlayerIOClient;
+using UnityEngine.UI;
+using TMPro;
 
 public class MainGame : MonoBehaviour
 {
     public static MainGame Instance;
-    public List<GameObject> PlayersList = new List<GameObject>(29);
+    public List<PlayerData> PlayersList = new List<PlayerData>(29);
+    public List<TextMeshProUGUI> PlayerPseudo;
+    public List<Bubble> bubblesOnBoard = new List<Bubble>();
+    public List<Vector2Int> EmptyPos = new List<Vector2Int>();
+    public Bubble bubbleOnBoard;
 
     // Server Stuff
     private Connection pioconnection;
@@ -63,7 +69,7 @@ public class MainGame : MonoBehaviour
         string userid = "Guest" + random.Next(0, 10000);
         Debug.Log("Starting");
 
-        
+
         PlayerIO.Authenticate(
             "bubblemultiplayer-zatagsqclku6yvvgdwkwtq",
             "public",                               //Your connection id
@@ -134,16 +140,16 @@ public class MainGame : MonoBehaviour
             switch (m.Type)
             {
                 case "PlayerJoined":
-                    GameObject newplayer = GameObject.Instantiate(target) as GameObject;
-                    PlayersList.Add(newplayer);
-                    newplayer.transform.position = new Vector3(m.GetFloat(1), 0, m.GetFloat(2));
-                    newplayer.name = m.GetString(0);
-                    newplayer.transform.Find("NameTag").GetComponent<TextMesh>().text = m.GetString(0);
+                    PlayerData newPlayer = new PlayerData();
+                    newPlayer.playerName = m.GetString(0);
+                    newPlayer.playerBoard = GameObject.Instantiate(target) as GameObject;
+                    PlayersList.Add(newPlayer);
+                    newPlayer.playerBoard.transform.Find("NameTag").GetComponent<TextMesh>().text = m.GetString(0);
                     break;
                 case "PlayerLeft":
                     // remove characters from the scene when they leave
                     GameObject playerd = GameObject.Find(m.GetString(0));
-                    PlayersList.Remove(playerd);
+                    //PlayersList.Remove(playerd);
                     Destroy(playerd);
                     break;
                 case "Chat":
@@ -251,9 +257,17 @@ public class MainGame : MonoBehaviour
         go = GameObject.Instantiate(PrefabBubbles[rnd], NextBubbleStart.transform.position, Quaternion.identity);
         _nextBubble = go.GetComponent<Bubble>();
     }
-    
+
     public void Update()
     {
+        for (int i = 0; i < PlayerPseudo.Count; i++)
+        {
+            if (PlayersList[i] != null)
+            {
+                PlayerPseudo[i].text = PlayersList[i].playerName;
+            }
+
+        }
         if (_state != GameState.Normal)
             return;
 
@@ -332,7 +346,9 @@ public class MainGame : MonoBehaviour
     }
     public void FixBubble(Bubble bubble)
     {
-        if ( bubble.transform.position.y < Death.transform.position.y)
+        if(bubble == null)
+        { return; }
+        if (bubble.transform.position.y < Death.transform.position.y)
         {
             _state = GameState.Lost;
             Lost.SetActive(true);
@@ -360,7 +376,7 @@ public class MainGame : MonoBehaviour
 
         if (count >= 3)
         {
-            SendBubble(count - 2);
+            
             for (int y = 0; y < Lines; y++)
             {
                 for (int x = 0; x < Width; x++)
@@ -373,6 +389,7 @@ public class MainGame : MonoBehaviour
                     }
                 }
             }
+            
 
 
             for (int y = 0; y < Lines; y++)
@@ -401,7 +418,7 @@ public class MainGame : MonoBehaviour
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    if (BubblesGrid[x, y] != null &&  BubblesGrid[x, y].Attached == false)
+                    if (BubblesGrid[x, y] != null && BubblesGrid[x, y].Attached == false)
                     {
                         Bubble bubbleToDestroy = BubblesGrid[x, y];
                         bubbleToDestroy.DestroyBubble();
@@ -410,8 +427,9 @@ public class MainGame : MonoBehaviour
                     }
                 }
             }
-            
-            if (countAttached == 0 )
+            SendBubble(count - 2);
+
+            if (countAttached == 0)
             {
                 _state = GameState.Won;
                 Won.SetActive(true);
@@ -424,36 +442,54 @@ public class MainGame : MonoBehaviour
 
     void SendBubble(int numberToSend)
     {
-        List<Bubble> bubblesOnBoard = new List<Bubble>();
-        if(numberToSend > 8)
+        if (numberToSend > 8)
         {
             numberToSend = 8;
         }
         int rnd = Random.Range(0, PrefabBubbles.Length);
         GameObject go;
-    
+
         for (int j = 0; j < Lines; j++)
         {
             for (int i = 0; i < Width; i++)
             {
-                if(BubblesGrid[i,j] != null)
+                if (BubblesGrid[i, j] != null)
                 {
                     bubblesOnBoard.Add(BubblesGrid[i, j]);
                 }
                 else
-                {    
+                {
+
                 }
             }
         }
-        Debug.Log(numberToSend);
         for (int i = 0; i < numberToSend; i++)
         {
-            Debug.Log("Spawn");
-            int randomInt = Random.Range(0, bubblesOnBoard.Count);
-            Bubble bubbleOnBoard = bubblesOnBoard[randomInt];
-            
-            go = GameObject.Instantiate(PrefabBubbles[rnd], bubblesOnBoard[randomInt].transform.position, Quaternion.identity);
-            go.name = "Bubble send";
+            int randomInt = Random.Range(0, bubblesOnBoard.Count-i);
+            //Bubble bubbleOnBoard = bubblesOnBoard[randomInt];
+            bubbleOnBoard = bubblesOnBoard[randomInt];
+            Vector2Int bubbleOnBoardVector = WorldToGrid(bubbleOnBoard.transform.position);
+            //List<Vector2Int> emptyPos = new List<Vector2Int>();
+            FindEmptyNeighbour(BubblesGrid, bubbleOnBoardVector);
+            int randomEmptyPos = Random.Range(0, EmptyPos.Count);
+            go = GameObject.Instantiate(PrefabBubbles[rnd], GridToWorld(EmptyPos[randomEmptyPos].x, EmptyPos[randomEmptyPos].y), Quaternion.identity);
+            go.transform.position = WorldToWorldAligned(GridToWorld(EmptyPos[randomEmptyPos].x, EmptyPos[randomEmptyPos].y),out Vector2Int grid);
+            go.name = "Bubble send" + i;
+            go.GetComponent<CircleCollider2D>().enabled = true;
+            //BubblesGrid[grid.x, grid.y] = bubbleOnBoard;
+            //Debug.Log(grid);
+            FixBubble(go.GetComponent<Bubble>());
+            bubblesOnBoard.Remove(bubbleOnBoard);
+        }
+        
+        bubblesOnBoard.Clear();
+        EmptyPos.Clear();
+    }
+    public void FixAllBubble()
+    {
+        foreach(Bubble bubble in BubblesGrid)
+        {
+            FixBubble(bubble);
         }
     }
     void CheckAttached(bool[,] bubbleChecked, Vector2Int position)
@@ -497,8 +533,57 @@ public class MainGame : MonoBehaviour
             CheckAttached(bubbleChecked, position + new Vector2Int(1, 1));
         }
     }
+    void NeigtbourCheck(Bubble[,] grid, Vector2Int position, Vector2Int offset)
+    {
+        int xCount = position.y % 2 == 0 ? Width : Width - 1;
+        if (position.x +offset.x >= xCount || position.x + offset.x < 0)
+            return;
+
+        if (position.y + offset.y >= Lines || position.y + offset.y < 0)
+            return;
+       
+        if (grid[position.x + offset.x, position.y + offset.y] != null)
+        {
+            Vector2Int emptyPosition = new Vector2Int(position.x + offset.x, position.y + offset.y);
+            Debug.Log("EmptyPos");
+            EmptyPos.Add(emptyPosition);
+        }
+        else
+        {
+
+        }
+    }
+    void FindEmptyNeighbour(Bubble[,] grid, Vector2Int position)
+    {
+        int xCount = position.y % 2 == 0 ? Width : Width - 1;
+
+        if (position.x >= xCount || position.x < 0)
+            return;
+
+        if (position.y >= Width || position.y < 0)
+            return;
 
 
+        if (position.y % 2 == 0)
+        {
+            NeigtbourCheck(grid, position, new Vector2Int(-1, -1));
+            NeigtbourCheck(grid, position, new Vector2Int(0, -1));
+            NeigtbourCheck(grid, position, new Vector2Int(-1, 0));
+            NeigtbourCheck(grid, position, new Vector2Int(0, -1));
+            NeigtbourCheck(grid, position, new Vector2Int(-1, 1));
+            NeigtbourCheck(grid, position, new Vector2Int(0, 1));
+        }
+        if(position.y % 2 == 1)
+        {
+            NeigtbourCheck(grid, position, new Vector2Int(0, -1));
+            NeigtbourCheck(grid, position, new Vector2Int(1, -1));
+            NeigtbourCheck(grid, position, new Vector2Int(-1, 0));
+            NeigtbourCheck(grid, position, new Vector2Int(0, -1));
+            NeigtbourCheck(grid, position, new Vector2Int(0, 1));
+            NeigtbourCheck(grid, position, new Vector2Int(1, 1));
+        }
+        
+    }
     void FillNeighbourColor(BubbleColor[,] grid, BubbleColor color, Vector2Int position)
     {
         int xCount = position.y % 2 == 0 ? Width : Width - 1;
@@ -544,5 +629,13 @@ public class MainGame : MonoBehaviour
 
     }
 
+    public void Win()
+    {
+        Debug.Log(PlayersList[0].playerName + " a gagné");
+    }
+    public void KillPlayer()
+    {
+
+    }
 
 }

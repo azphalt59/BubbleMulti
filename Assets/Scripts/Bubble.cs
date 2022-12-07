@@ -72,7 +72,6 @@ public class Bubble : MonoBehaviour
         GetComponent<Rigidbody2D>().AddForce(Random.insideUnitCircle , ForceMode2D.Impulse);
         GetComponent<SpriteRenderer>().DOFade(0, 0.8f);
         GameObject.Destroy(gameObject,0.8f);
-
         GameObject.Instantiate(PrefabExplosion, transform.position, Quaternion.identity);
     }
 
