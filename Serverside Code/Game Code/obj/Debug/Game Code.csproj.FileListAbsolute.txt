@@ -1,0 +1,9 @@
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\bin\Debug\MushroomsUnity3DExample.dll
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\bin\Debug\MushroomsUnity3DExample.pdb
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\bin\Debug\Player.IO GameLibrary.dll
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\bin\Debug\Player.IO GameLibrary.xml
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\obj\Debug\Game Code.csprojAssemblyReference.cache
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\obj\Debug\Game Code.csproj.CoreCompileInputs.cache
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\obj\Debug\Game Code.csproj.CopyComplete
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\obj\Debug\MushroomsUnity3DExample.dll
+C:\Users\hugob\OneDrive\Documents\GitHub\BubbleMulti\Serverside Code\Game Code\obj\Debug\MushroomsUnity3DExample.pdb

@@ -90,8 +90,8 @@ public class MainGame : MonoBehaviour
                 Debug.Log("CreateJoinRoom");
                 //Create or join the room 
                 client.Multiplayer.CreateJoinRoom(
-                    "",                    //Room id. If set to null a random roomid is used
-                    "BubbleMulti",                   //The room type started on the server
+                    "1",                    //Room id. If set to null a random roomid is used
+                    "bounce",                   //The room type started on the server
                     true,                               //Should the room be visible in the lobby?
                     null,
                     null,
