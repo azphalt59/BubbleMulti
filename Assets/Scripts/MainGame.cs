@@ -24,6 +24,8 @@ public class MainGame : MonoBehaviour
     private Vector2 scrollPosition;
     private ArrayList entries = new ArrayList();
     private string inputField = "";
+    private Rect window = new Rect(810 , 750, 300, 300);
+    
     enum GameState
     {
         Normal,
@@ -143,7 +145,7 @@ public class MainGame : MonoBehaviour
                     PlayerData newPlayer = new PlayerData();
                     newPlayer.playerName = m.GetString(0);
                     newPlayer.playerBoard = GameObject.Instantiate(target) as GameObject;
-                    PlayersList.Add(newPlayer);
+                    //PlayersList.Add(newPlayer);
                     newPlayer.playerBoard.transform.Find("NameTag").GetComponent<TextMesh>().text = m.GetString(0);
                     break;
                 case "PlayerLeft":
@@ -184,6 +186,14 @@ public class MainGame : MonoBehaviour
 
         scrollPosition.y = 1000000;
     }
+    void OnGUI()
+    {
+        window = GUI.Window(1, window, GlobalChatWindow, "Chat");
+        if (infomsg != "")
+        {
+            GUI.Label(new Rect(10, 180, Screen.width, 20), infomsg);
+        }
+    }
     void GlobalChatWindow(int id)
     {
 
@@ -214,7 +224,7 @@ public class MainGame : MonoBehaviour
             }
 
             GUILayout.EndHorizontal();
-            GUILayout.Space(3);
+            GUILayout.Space(1);
 
         }
         // End the scrollview we began above.
@@ -260,14 +270,14 @@ public class MainGame : MonoBehaviour
 
     public void Update()
     {
-        for (int i = 0; i < PlayerPseudo.Count; i++)
-        {
-            if (PlayersList[i] != null)
-            {
-                PlayerPseudo[i].text = PlayersList[i].playerName;
-            }
+        //for (int i = 0; i < PlayerPseudo.Count; i++)
+        //{
+        //    if (PlayersList[i] != null)
+        //    {
+        //        PlayerPseudo[i].text = PlayersList[i].playerName;
+        //    }
 
-        }
+        //}
         if (_state != GameState.Normal)
             return;
 
