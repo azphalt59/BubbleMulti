@@ -8,7 +8,11 @@ using TMPro;
 public class MainGame : MonoBehaviour
 {
     public static MainGame Instance;
-    public List<PlayerData> PlayersList = new List<PlayerData>(29);
+    public List<PlayerData> PlayersList;
+    public PlayerData thisPlayer;
+    public TMP_InputField inputFieldPlayerName;
+    public TextMeshProUGUI PlayerCount;
+    public int currentPlayerId = 0;
     public List<TextMeshProUGUI> PlayerPseudo;
     public List<Bubble> bubblesOnBoard = new List<Bubble>();
     public List<Vector2Int> EmptyPos = new List<Vector2Int>();
@@ -84,6 +88,17 @@ public class MainGame : MonoBehaviour
                 infomsg = "Successfully connected to Player.IO";
 
                 target.transform.name = userid;
+                thisPlayer = new PlayerData
+                {
+                    playerName = userid,
+                    playerId = currentPlayerId,
+                    isReady = false
+                };
+                
+                PlayersList.Add(thisPlayer);
+                PlayersList[currentPlayerId] = thisPlayer;
+                currentPlayerId++;
+
 
                 Debug.Log("Create ServerEndpoint");
                 // Comment out the line below to use the live servers instead of your development server
@@ -115,6 +130,11 @@ public class MainGame : MonoBehaviour
                 Debug.Log("Error connecting: " + error.ToString());
                 infomsg = error.ToString();
             });
+
+        Debug.Log(userid);
+        Debug.Log(thisPlayer.playerId);
+        //pioconnection.Send("PlayerJoined", userid, thisPlayer.playerId, thisPlayer.isReady);
+        
         Instance = this;
 
         BubblesGrid = new Bubble[Width, Lines];
@@ -142,11 +162,16 @@ public class MainGame : MonoBehaviour
             switch (m.Type)
             {
                 case "PlayerJoined":
+                    Debug.Log("player joined");
                     PlayerData newPlayer = new PlayerData();
                     newPlayer.playerName = m.GetString(0);
-                    newPlayer.playerBoard = GameObject.Instantiate(target) as GameObject;
-                    //PlayersList.Add(newPlayer);
-                    newPlayer.playerBoard.transform.Find("NameTag").GetComponent<TextMesh>().text = m.GetString(0);
+                    newPlayer.playerId = m.GetInt(1);
+                    newPlayer.isReady = m.GetBoolean(2);
+                    //newPlayer.playerId = currentPlayerId;
+                    currentPlayerId++;
+                    PlayersList.Add(newPlayer);
+                    PlayersList[newPlayer.playerId] = newPlayer;
+                    
                     break;
                 case "PlayerLeft":
                     // remove characters from the scene when they leave
@@ -157,21 +182,41 @@ public class MainGame : MonoBehaviour
                 case "Chat":
                     if (m.GetString(0) != "Server")
                     {
-                        GameObject chatplayer = GameObject.Find(m.GetString(0));
-                        chatplayer.transform.Find("Chat").GetComponent<TextMesh>().text = m.GetString(1);
-                        chatplayer.transform.Find("Chat").GetComponent<MeshRenderer>().material.color = Color.white;
-                        chatplayer.transform.Find("Chat").GetComponent<ChatClear>().lastupdate = Time.time;
+                        Debug.Log(m.GetString(0));
+                        GameObject Chat = target.transform.gameObject.transform.Find("Chat").gameObject;
+                       
+                        Chat.GetComponent<TextMesh>().text = m.GetString(0);
+                        Chat.GetComponent<MeshRenderer>().material.color = Color.white;
+                        Chat.GetComponent<ChatClear>().lastupdate = Time.time;
                     }
                     ChatText(m.GetString(0) + " says: " + m.GetString(1), false);
                     break;
                 case "Lose":
                     GameObject losePlayer = GameObject.Find(m.GetString(0));
                     break;
+                case "ChangeName":
+                    int number;
+                    //if(int.TryParse(m.GetString(0), out number))
+                    PlayersList[m.GetInt(0)].playerName = m.GetString(1);
+                    //PlayerData  newPlayer2 = new PlayerData
+                    //{
+                    //    playerName = m.GetString(1),
+                    //    playerId = m.GetInt(0),
+                    //    isReady = false
+                    //};
+                    //PlayersList.Add(newPlayer2);
+                    break;
+
             }
         }
-
+        
         // clear message queue after it's been processed
         msgList.Clear();
+    }
+    public void SetNewName()
+    {
+        thisPlayer.playerName = inputFieldPlayerName.text;
+        pioconnection.Send("ChangeName", thisPlayer.playerId, thisPlayer.playerName);
     }
     void ChatText(string str, bool own)
     {
@@ -229,23 +274,25 @@ public class MainGame : MonoBehaviour
         }
         // End the scrollview we began above.
         GUILayout.EndScrollView();
+        
+        //if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Return && inputField.Length > 0)
+        //{
 
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Return && inputField.Length > 0)
-        {
+        //    GameObject chatplayer = GameObject.Find(target.transform.name);
+        //    string playername = chatplayer.name;
+        //    chatplayer.transform.Find("Chat").GetComponent<TextMesh>().text = inputField;
+        //    chatplayer.transform.Find("Chat").GetComponent<MeshRenderer>().material.color = Color.white;
+        //    chatplayer.transform.Find("Chat").GetComponent<ChatClear>().lastupdate = Time.time;
 
-            GameObject chatplayer = GameObject.Find(target.transform.name);
-            chatplayer.transform.Find("Chat").GetComponent<TextMesh>().text = inputField;
-            chatplayer.transform.Find("Chat").GetComponent<MeshRenderer>().material.color = Color.white;
-            chatplayer.transform.Find("Chat").GetComponent<ChatClear>().lastupdate = Time.time;
+        //    //ChatText(target.transform.name + " says: " + inputField, true);
+        //    pioconnection.Send("Chat", playername , inputField);
+        //    inputField = "";
+        //}
+        //GUI.SetNextControlName("Chat input field");
+        //inputField = GUILayout.TextField(inputField);
 
-            ChatText(target.transform.name + " says: " + inputField, true);
-            pioconnection.Send("Chat", inputField);
-            inputField = "";
-        }
-        GUI.SetNextControlName("Chat input field");
-        inputField = GUILayout.TextField(inputField);
-
-        GUI.DragWindow();
+        //GUI.DragWindow();
+        
     }
     void SpawnNewBubble()
     {
@@ -270,6 +317,11 @@ public class MainGame : MonoBehaviour
 
     public void Update()
     {
+        PlayerCount.text = "Il y a actuellement " + currentPlayerId + " joueurs, x joueurs sont ready";
+        for (int i = 0; i < PlayersList.Count; i++)
+        {
+            PlayerPseudo[i].text = PlayersList[i].playerName;
+        }
         //for (int i = 0; i < PlayerPseudo.Count; i++)
         //{
         //    if (PlayersList[i] != null)

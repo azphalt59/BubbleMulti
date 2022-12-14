@@ -5,7 +5,9 @@ using PlayerIO.GameLibrary;
 
 	public class Player : BasePlayer 
 	{
-		public string name
+		public string Name;
+		public int PlayerID;
+		public bool isReady = false;
 	}
 
 	
@@ -13,7 +15,7 @@ using PlayerIO.GameLibrary;
 	[RoomType("bounce")]
 	public class GameCode : Game<Player> 
 	{
-		
+	public int playerConnected = 0;
 		 
 
 		// This method is called when an instance of your the game is created
@@ -27,12 +29,6 @@ using PlayerIO.GameLibrary;
 		private void resetgame() 
 		{
 			
-			// broadcast who won the round
-			if(winner.toadspicked > 0) {
-				Broadcast("Chat", "Server", winner.ConnectUserId + " picked " + winner.toadspicked + " Toadstools and won this round.");
-			} else {
-				Broadcast("Chat", "Server", "No one won this round.");
-			}
 		}
 
 
@@ -46,10 +42,12 @@ using PlayerIO.GameLibrary;
 		{
 			foreach(Player pl in Players) {
 				if(pl.ConnectUserId != player.ConnectUserId) {
-					pl.Send("PlayerJoined", player.ConnectUserId, player.ConnectUserID);
-					player.Send("PlayerJoined", pl.ConnectUserId, pl.ConnectUserId);
+					pl.Send("PlayerJoined", player.Name, player.PlayerID, player.isReady);
+					player.Send("PlayerJoined", pl.Name, pl.PlayerID, pl.isReady);
+
 				}
 			}
+			//playerConnected++;
 		}
 
 		// This method is called when a player leaves the game
@@ -62,18 +60,27 @@ using PlayerIO.GameLibrary;
 		{
 			switch(message.Type) {
 				// called when a player clicks on the ground
-				case "Move":
-					player.posx = message.GetFloat(0);
-					player.posz = message.GetFloat(1);
-					Broadcast("Move", player.ConnectUserId, player.posx, player.posz);
-					break;
+				
+
 				case "Chat":
 					foreach(Player pl in Players) {
 						if(pl.ConnectUserId != player.ConnectUserId) {
-							pl.Send("Chat", r.GetString(0), message.GetString(0));
+							pl.Send("Chat", message.GetString(0), message.GetString(1));
 						}
 					}
 					break;
+				case "ChangeName":
+				playerConnected++;
+				foreach (Player pl in Players)
+					{
+						if(pl.ConnectUserId != player.ConnectUserId)
+						{
+						
+						pl.Send("ChangeName", message.GetInt(0), message.GetString(1));
+						}
+					}
+				break;
+
 			}
 		}
 	}
